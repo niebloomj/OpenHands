@@ -43,6 +43,8 @@ import { useSendMessage } from "#/hooks/use-send-message";
 import { useAgentState } from "#/hooks/use-agent-state";
 import { useIsArchivedConversation } from "#/hooks/use-is-archived-conversation";
 import { useHandleBuildPlanClick } from "#/hooks/use-handle-build-plan-click";
+import { useRecoveryReport } from "#/hooks/query/use-recovery-report";
+import { RecoveryReportCard } from "./recovery-report-card";
 
 import { ScrollToBottomButton } from "#/components/shared/buttons/scroll-to-bottom-button";
 import { LoadingSpinner } from "#/components/shared/loading-spinner";
@@ -258,6 +260,11 @@ export function ChatInterface({
   ]);
 
   const { conversationId } = useOptionalConversationId();
+  const recoveryReport = useRecoveryReport(
+    conversationId,
+    activeConversation,
+    curAgentState,
+  );
 
   // The live goal banner renders in the scroll stream but advances via store
   // updates (in-progress goal events are filtered out of `renderableEvents`),
@@ -900,6 +907,10 @@ export function ChatInterface({
                 {pendingUserMessages}
                 <TaskStartupProgress />
               </>
+            )}
+
+            {recoveryReport && !isTask && (
+              <RecoveryReportCard report={recoveryReport} />
             )}
 
             {/* Goal-loop status sits at the end of the message flow — above the

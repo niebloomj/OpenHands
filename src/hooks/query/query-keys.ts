@@ -3,6 +3,7 @@
  * Using constants ensures type safety and prevents typos.
  */
 
+import type { SandboxStatus } from "#/api/conversation-service/agent-server-conversation-service.types";
 import { SettingsScope } from "#/types/settings";
 
 export const QUERY_KEYS = {
@@ -136,6 +137,26 @@ export const MARS_QUERY_KEYS = {
 export const APP_UPDATE_QUERY_KEYS = {
   /** Latest published @openhands/agent-canvas version (npm `latest` dist-tag). */
   latestVersion: ["agent-canvas-latest-version"] as const,
+} as const;
+
+export const RECOVERY_REPORT_QUERY_KEYS = {
+  detail: (
+    id: string | null,
+    backendId: string,
+    orgId: string | null,
+    conversationUrl: string | null,
+    hasSessionApiKey: boolean,
+    sandboxStatus: SandboxStatus | null,
+  ) =>
+    [
+      "conversation-recovery-report",
+      id,
+      backendId,
+      orgId,
+      conversationUrl,
+      hasSessionApiKey,
+      sandboxStatus,
+    ] as const,
 } as const;
 
 export const DEFAULT_CONVERSATION_PAGE_SIZE = 20;

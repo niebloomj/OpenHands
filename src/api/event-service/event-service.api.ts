@@ -8,6 +8,11 @@ import {
   getAgentServerHttpClientOptions,
 } from "../agent-server-client-options";
 import type {
+  AppConversation,
+  RecoveryReportResult,
+} from "#/api/conversation-service/agent-server-conversation-service.types";
+import { isRuntimeUnavailableSandboxStatus } from "#/utils/conversation-archive-status";
+import type {
   ConfirmationResponseRequest,
   ConfirmationResponseResponse,
   EventSearchOptions,
@@ -65,6 +70,35 @@ class EventService {
         sessionApiKey,
       }),
     ).getEventCount(conversationId);
+  }
+
+  static async getRecoveryReport(
+    conversationId: string,
+    conversation: Pick<
+      AppConversation,
+      "conversation_url" | "session_api_key" | "sandbox_status"
+    >,
+    signal?: AbortSignal,
+  ): Promise<RecoveryReportResult> {
+    const isCloud = getActiveBackend().backend.kind === "cloud";
+    if (
+      isCloud &&
+      (!conversation.conversation_url ||
+        conversation.sandbox_status === "PAUSED" ||
+        isRuntimeUnavailableSandboxStatus(conversation.sandbox_status))
+    ) {
+      return { supported: false };
+    }
+
+    const client = new ConversationClient(
+      isCloud
+        ? getAgentServerClientOptions({
+            conversationUrl: conversation.conversation_url,
+            sessionApiKey: conversation.session_api_key,
+          })
+        : getAgentServerClientOptions(),
+    );
+    return client.getRecoveryReport(conversationId, { signal });
   }
 
   /**
