@@ -206,8 +206,16 @@ function renderConversationMain() {
   return render(conversationMainTree());
 }
 
+function setViewportWidth(width: number) {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: width,
+  });
+}
+
 describe("ConversationMain - Layout Transition Stability", () => {
   beforeEach(() => {
+    setViewportWidth(390);
     mockIsMobile = false;
     mockIsRightPanelShown = false;
     mockLeftWidth = 50;
@@ -299,7 +307,7 @@ describe("ConversationMain - Layout Transition Stability", () => {
 
     const chatPanel = screen.getByTestId("conversation-chat-panel");
     fireEvent.touchStart(chatPanel, {
-      touches: [{ identifier: 1, clientX: 24, clientY: 120 }],
+      touches: [{ identifier: 1, clientX: 48, clientY: 120 }],
     });
     fireEvent.touchEnd(chatPanel, {
       changedTouches: [{ identifier: 1, clientX: 160, clientY: 126 }],
@@ -335,7 +343,7 @@ describe("ConversationMain - Layout Transition Stability", () => {
     );
   });
 
-  it("only opens the mobile sidebar when the swipe starts near the left edge", () => {
+  it("opens the mobile sidebar when swiping from within the left third", () => {
     mockIsMobile = true;
     renderConversationMain();
 
@@ -345,6 +353,42 @@ describe("ConversationMain - Layout Transition Stability", () => {
     });
     fireEvent.touchEnd(chatPanel, {
       changedTouches: [{ identifier: 1, clientX: 180, clientY: 126 }],
+    });
+
+    expect(screen.getByTestId("sidebar-mobile-menu-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  it("does not open the mobile sidebar from the system edge gesture zone", () => {
+    mockIsMobile = true;
+    renderConversationMain();
+
+    const chatPanel = screen.getByTestId("conversation-chat-panel");
+    fireEvent.touchStart(chatPanel, {
+      touches: [{ identifier: 1, clientX: 12, clientY: 120 }],
+    });
+    fireEvent.touchEnd(chatPanel, {
+      changedTouches: [{ identifier: 1, clientX: 132, clientY: 126 }],
+    });
+
+    expect(screen.getByTestId("sidebar-mobile-menu-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it("does not open the mobile sidebar when swiping beyond the left third", () => {
+    mockIsMobile = true;
+    renderConversationMain();
+
+    const chatPanel = screen.getByTestId("conversation-chat-panel");
+    fireEvent.touchStart(chatPanel, {
+      touches: [{ identifier: 1, clientX: 150, clientY: 120 }],
+    });
+    fireEvent.touchEnd(chatPanel, {
+      changedTouches: [{ identifier: 1, clientX: 250, clientY: 126 }],
     });
 
     expect(screen.getByTestId("sidebar-mobile-menu-toggle")).toHaveAttribute(

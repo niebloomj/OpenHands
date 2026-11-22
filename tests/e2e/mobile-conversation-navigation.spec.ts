@@ -94,7 +94,7 @@ test("swiping right from the chat edge opens the mobile sidebar", async ({
       );
     };
 
-    dispatchTouch("touchstart", 24);
+    dispatchTouch("touchstart", 48);
     dispatchTouch("touchend", 160);
   });
 

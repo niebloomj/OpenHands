@@ -69,7 +69,7 @@ const MOBILE_AUTOMATION_VIEW_OPTIONS: {
   },
 ];
 
-const MOBILE_SIDEBAR_SWIPE_START_MAX_PX = 32;
+const MOBILE_SIDEBAR_SWIPE_START_MIN_PX = 24;
 const MOBILE_SIDEBAR_SWIPE_THRESHOLD_PX = 80;
 
 function AutomationSetupDockedComposer({
@@ -213,7 +213,8 @@ export function ConversationMain({ children }: { children?: ReactNode } = {}) {
 
     const touch = event.touches[0];
     mobileSidebarSwipeStart.current =
-      touch.clientX <= MOBILE_SIDEBAR_SWIPE_START_MAX_PX
+      touch.clientX >= MOBILE_SIDEBAR_SWIPE_START_MIN_PX &&
+      touch.clientX <= window.innerWidth / 3
         ? { x: touch.clientX, y: touch.clientY }
         : null;
   };
