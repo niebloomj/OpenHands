@@ -225,7 +225,10 @@ export function GitControlBar({ onSuggestionsClick }: GitControlBarProps) {
 
   return (
     <div className="flex flex-row items-center">
-      <div className="flex flex-row gap-2.5 items-center overflow-x-auto flex-nowrap relative scrollbar-hide">
+      <div
+        data-sidebar-swipe-ignore
+        className="flex flex-row gap-2.5 items-center overflow-x-auto flex-nowrap relative scrollbar-hide"
+      >
         {showRepoButton ? (
           <GitControlBarRepoButton
             selectedRepository={selectedRepository}

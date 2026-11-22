@@ -66,6 +66,46 @@ test("mobile conversation menu has a comfortable touch target", async ({
   expect(topBarBounds!.height).toBeGreaterThanOrEqual(48);
 });
 
+test("swiping right from the chat edge opens the mobile sidebar", async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const target = document.querySelector(
+      '[data-testid="conversation-chat-panel"]',
+    );
+    if (!(target instanceof HTMLElement)) {
+      throw new Error("Conversation chat panel is missing");
+    }
+
+    const dispatchTouch = (type: string, clientX: number) => {
+      const touch = new Touch({
+        identifier: 1,
+        target,
+        clientX,
+        clientY: 120,
+      });
+      target.dispatchEvent(
+        new TouchEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          touches: type === "touchend" ? [] : [touch],
+          changedTouches: [touch],
+        }),
+      );
+    };
+
+    dispatchTouch("touchstart", 24);
+    dispatchTouch("touchend", 160);
+  });
+
+  const drawer = page.getByTestId("sidebar-mobile-drawer");
+  await expect(drawer).toBeVisible();
+  await expect
+    .poll(async () => (await drawer.boundingBox())?.x)
+    .toBeGreaterThan(-2);
+  await page.screenshot({ path: ".pr/mobile-sidebar-swipe.png" });
+});
+
 test("mobile conversation rows are easy to tap without triggering their actions", async ({
   page,
 }) => {

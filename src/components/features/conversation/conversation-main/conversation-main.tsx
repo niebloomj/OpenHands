@@ -3,8 +3,10 @@ import {
   Suspense,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
+  type TouchEvent as ReactTouchEvent,
 } from "react";
 import { FileText, MessageSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -30,6 +32,7 @@ import {
   SIDEBAR_RAIL_COLLAPSE_MAX_WIDTH,
 } from "#/hooks/use-breakpoint";
 import { SidebarMobileMenuToggle } from "#/components/features/sidebar/sidebar-mobile-menu-toggle";
+import { useSidebarMobileNav } from "#/components/features/sidebar/sidebar-mobile-nav-context";
 import { ConversationOverviewDrawer } from "../conversation-overview-drawer";
 import { useConversationOverviewDrawerOptional } from "../conversation-overview-drawer-context";
 import { useActiveConversation } from "#/hooks/query/use-active-conversation";
@@ -66,6 +69,9 @@ const MOBILE_AUTOMATION_VIEW_OPTIONS: {
   },
 ];
 
+const MOBILE_SIDEBAR_SWIPE_START_MAX_PX = 32;
+const MOBILE_SIDEBAR_SWIPE_THRESHOLD_PX = 80;
+
 function AutomationSetupDockedComposer({
   onTarget,
 }: {
@@ -92,6 +98,9 @@ function getDesktopTabPanelClass(isRightPanelShown: boolean) {
 
 export function ConversationMain({ children }: { children?: ReactNode } = {}) {
   const { t } = useTranslation("openhands");
+  const { isOpen: isMobileSidebarOpen, open: openMobileSidebar } =
+    useSidebarMobileNav();
+  const mobileSidebarSwipeStart = useRef<{ x: number; y: number } | null>(null);
   const { conversationId } = useConversationId();
   const { data: conversation } = useActiveConversation();
   const isMobile = useBreakpoint();
@@ -186,9 +195,53 @@ export function ConversationMain({ children }: { children?: ReactNode } = {}) {
     automationSetupDraft?.form?.name?.trim() ||
     conversation?.title ||
     t(I18nKey.AUTOMATION_SETUP$TITLE);
+  const handleMobileSidebarTouchStart = (
+    event: ReactTouchEvent<HTMLDivElement>,
+  ) => {
+    if (
+      !isSidebarRailHidden ||
+      isMobileSidebarOpen ||
+      event.touches.length !== 1 ||
+      (event.target instanceof Element &&
+        event.target.closest(
+          "input, textarea, select, [contenteditable='true'], [data-sidebar-swipe-ignore]",
+        ))
+    ) {
+      mobileSidebarSwipeStart.current = null;
+      return;
+    }
+
+    const touch = event.touches[0];
+    mobileSidebarSwipeStart.current =
+      touch.clientX <= MOBILE_SIDEBAR_SWIPE_START_MAX_PX
+        ? { x: touch.clientX, y: touch.clientY }
+        : null;
+  };
+  const handleMobileSidebarTouchEnd = (
+    event: ReactTouchEvent<HTMLDivElement>,
+  ) => {
+    const start = mobileSidebarSwipeStart.current;
+    mobileSidebarSwipeStart.current = null;
+    if (!start || isMobileSidebarOpen) return;
+
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = Math.abs(touch.clientY - start.y);
+    if (deltaX >= MOBILE_SIDEBAR_SWIPE_THRESHOLD_PX && deltaX > deltaY) {
+      event.preventDefault();
+      openMobileSidebar();
+    }
+  };
 
   return (
     <div
+      onTouchStart={handleMobileSidebarTouchStart}
+      onTouchEnd={handleMobileSidebarTouchEnd}
+      onTouchCancel={() => {
+        mobileSidebarSwipeStart.current = null;
+      }}
       className={cn(
         isMobile
           ? "relative min-h-0 flex-1 flex flex-col"
@@ -255,6 +308,7 @@ export function ConversationMain({ children }: { children?: ReactNode } = {}) {
             ) : null}
           </div>
           <div
+            data-sidebar-swipe-ignore
             className={cn(
               "flex min-w-0 items-center gap-1.5",
               isMobile ? "overflow-x-auto px-3 pb-2" : "shrink-0",

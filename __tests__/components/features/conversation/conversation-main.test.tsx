@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SidebarMobileNavProvider } from "#/components/features/sidebar/sidebar-mobile-nav-context";
@@ -291,6 +291,66 @@ describe("ConversationMain - Layout Transition Stability", () => {
     expect(
       screen.queryByTestId("conversation-mobile-back-button"),
     ).not.toBeInTheDocument();
+  });
+
+  it("opens the mobile sidebar when the chat is swiped right", () => {
+    mockIsMobile = true;
+    renderConversationMain();
+
+    const chatPanel = screen.getByTestId("conversation-chat-panel");
+    fireEvent.touchStart(chatPanel, {
+      touches: [{ identifier: 1, clientX: 24, clientY: 120 }],
+    });
+    fireEvent.touchEnd(chatPanel, {
+      changedTouches: [{ identifier: 1, clientX: 160, clientY: 126 }],
+    });
+
+    expect(screen.getByTestId("sidebar-mobile-menu-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  it("does not open the mobile sidebar for a vertical or short swipe", () => {
+    mockIsMobile = true;
+    renderConversationMain();
+
+    const chatPanel = screen.getByTestId("conversation-chat-panel");
+    fireEvent.touchStart(chatPanel, {
+      touches: [{ identifier: 1, clientX: 24, clientY: 120 }],
+    });
+    fireEvent.touchEnd(chatPanel, {
+      changedTouches: [{ identifier: 1, clientX: 34, clientY: 220 }],
+    });
+    fireEvent.touchStart(chatPanel, {
+      touches: [{ identifier: 1, clientX: 24, clientY: 120 }],
+    });
+    fireEvent.touchEnd(chatPanel, {
+      changedTouches: [{ identifier: 1, clientX: 64, clientY: 125 }],
+    });
+
+    expect(screen.getByTestId("sidebar-mobile-menu-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it("only opens the mobile sidebar when the swipe starts near the left edge", () => {
+    mockIsMobile = true;
+    renderConversationMain();
+
+    const chatPanel = screen.getByTestId("conversation-chat-panel");
+    fireEvent.touchStart(chatPanel, {
+      touches: [{ identifier: 1, clientX: 80, clientY: 120 }],
+    });
+    fireEvent.touchEnd(chatPanel, {
+      changedTouches: [{ identifier: 1, clientX: 180, clientY: 126 }],
+    });
+
+    expect(screen.getByTestId("sidebar-mobile-menu-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   it.each([

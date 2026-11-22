@@ -34,7 +34,10 @@ export function UploadedFiles() {
 
   return (
     <div className="flex w-full flex-col gap-2 pb-4">
-      <div className="flex w-full items-center gap-4 overflow-x-auto custom-scrollbar">
+      <div
+        data-sidebar-swipe-ignore
+        className="flex w-full items-center gap-4 overflow-x-auto custom-scrollbar"
+      >
         {/* Regular files */}
         {files.map((file, index) => (
           <UploadedFile
