@@ -147,6 +147,36 @@ export interface SendMessageResponse {
 export interface ConversationWorkspace {
   working_dir: string | null;
 }
+export type RecoveryReportResult =
+  { supported: false } | { supported: true; report: RecoveryReport | null };
+
+/** Read-only recovery evidence returned by Agent Server. */
+export interface RecoveryReport {
+  run_id: string;
+  outcome:
+    | "completed"
+    | "failed"
+    | "stuck"
+    | "paused"
+    | "waiting"
+    | "interrupted_unknown";
+  reason_code: string | null;
+  summary: string;
+  started_at: string;
+  ended_at: string | null;
+  error_event_id: string | null;
+  evidence_coverage: "complete" | "partial" | "unavailable";
+  omitted_event_count: number | null;
+  last_agent_update: { event_id: string; text: string } | null;
+  recent_activity: Array<{ event_id: string; kind: string; label: string }>;
+  incomplete_tasks: Array<{ title: string; status: string }>;
+  uncertain_operations: Array<{
+    action_event_id: string;
+    tool_name: string;
+    possible_side_effects: boolean;
+    reason: string;
+  }>;
+}
 
 export interface LaunchedAgentProfile {
   agent_profile_id: string;

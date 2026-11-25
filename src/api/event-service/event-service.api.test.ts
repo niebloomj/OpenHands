@@ -8,6 +8,7 @@ const {
   getAgentServerClientOptionsMock,
   getAgentServerHttpClientOptionsMock,
   getEventCountMock,
+  getRecoveryReportMock,
   remoteEventsListConstructorMock,
   remoteSearchMock,
   respondToConfirmationMock,
@@ -19,6 +20,7 @@ const {
   getAgentServerClientOptionsMock: vi.fn(),
   getAgentServerHttpClientOptionsMock: vi.fn(),
   getEventCountMock: vi.fn(),
+  getRecoveryReportMock: vi.fn(),
   remoteEventsListConstructorMock: vi.fn(),
   remoteSearchMock: vi.fn(),
   respondToConfirmationMock: vi.fn(),
@@ -32,6 +34,7 @@ vi.mock("@openhands/typescript-client/clients", () => ({
 
     respondToConfirmation = respondToConfirmationMock;
     getEventCount = getEventCountMock;
+    getRecoveryReport = getRecoveryReportMock;
   },
 }));
 vi.mock("@openhands/typescript-client/events/remote-events-list", () => ({
@@ -209,6 +212,73 @@ describe("EventService", () => {
       });
       expect(getEventCountMock).toHaveBeenCalledWith("conversation-local");
       expect(callCloudProxyMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getRecoveryReport", () => {
+    it("gets the report directly from the cloud runtime through the typed client", async () => {
+      const report = { run_id: "run-1", outcome: "failed" };
+      getRecoveryReportMock.mockResolvedValue({ supported: true, report });
+      const conversation = {
+        conversation_url: "https://runtime.example.com/api/conversations/id",
+        session_api_key: "session-key",
+        sandbox_status: "RUNNING",
+      } as Parameters<typeof EventService.getRecoveryReport>[1];
+      const signal = new AbortController().signal;
+
+      await expect(
+        EventService.getRecoveryReport(
+          "conversation-cloud",
+          conversation,
+          signal,
+        ),
+      ).resolves.toEqual({ supported: true, report });
+
+      expect(getAgentServerClientOptionsMock).toHaveBeenCalledWith({
+        conversationUrl: conversation.conversation_url,
+        sessionApiKey: conversation.session_api_key,
+      });
+      expect(conversationClientConstructorMock).toHaveBeenCalledWith({
+        host: "http://local-client.example.com",
+        apiKey: "client-key",
+        workingDir: "workspace/project",
+      });
+      expect(getRecoveryReportMock).toHaveBeenCalledWith("conversation-cloud", {
+        signal,
+      });
+      expect(callCloudProxyMock).not.toHaveBeenCalled();
+    });
+
+    it("uses the typed conversation client for local reports", async () => {
+      useBackend(localBackend);
+      getRecoveryReportMock.mockResolvedValue({ supported: false });
+      const conversation = {
+        conversation_url: null,
+        session_api_key: null,
+        sandbox_status: null,
+      } as Parameters<typeof EventService.getRecoveryReport>[1];
+
+      await expect(
+        EventService.getRecoveryReport("conversation-local", conversation),
+      ).resolves.toEqual({ supported: false });
+
+      expect(getAgentServerClientOptionsMock).toHaveBeenCalledWith();
+      expect(getRecoveryReportMock).toHaveBeenCalledWith("conversation-local", {
+        signal: undefined,
+      });
+    });
+
+    it("does not contact a paused cloud runtime", async () => {
+      const conversation = {
+        conversation_url: "https://runtime.example.com/api/conversations/id",
+        session_api_key: "session-key",
+        sandbox_status: "PAUSED",
+      } as Parameters<typeof EventService.getRecoveryReport>[1];
+
+      await expect(
+        EventService.getRecoveryReport("conversation-cloud", conversation),
+      ).resolves.toEqual({ supported: false });
+      expect(conversationClientConstructorMock).not.toHaveBeenCalled();
     });
   });
 
